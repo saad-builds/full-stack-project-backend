@@ -13,7 +13,7 @@ app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://todo-app-pied-xi-44.vercel.app"
+  "https://full-stack-project-frontend-psi.vercel.app"
 ];
 
 app.use(
