@@ -140,7 +140,7 @@ app.post("/login", async (req, res) => {
         userId: findEmail._id,
         email: findEmail.email,
       },
-      process.env.JWT_SECRECT_KEY,
+      process.env.JWT_SECRET_KEY,
       { expiresIn: "20m" },
     );
 
@@ -167,7 +167,7 @@ function isLoggedin(req, res, next) {
     if (!authHeader) return res.status(401).json({ message: "No token provided" });
 
     const token = authHeader.split(" ")[1];
-    const data = jwt.verify(token, process.env.JWT_SECRECT_KEY);
+    const data = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.user = data;
     next();
   } catch (err) {
