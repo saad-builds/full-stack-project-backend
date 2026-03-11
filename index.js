@@ -9,11 +9,9 @@ const userModel = require("./Models/userModel");
 const productModel = require("./Models/productModel");
 app.use(express.json());
 
-
-
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://full-stack-project-frontend-psi.vercel.app"
+  "https://full-stack-project-frontend-psi.vercel.app",
 ];
 
 app.use(
@@ -25,28 +23,26 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 
-
-
 // ADD PRODUCT -- POST
-app.post("/add", async (req, res) => {
-await productModel.create(req.body);
-return res.status(201).send("Product Added");
+app.post("/add", isLoggedin, async (req, res) => {
+  await productModel.create(req.body);
+  return res.status(201).send("Product Added");
 });
+
 // GET PRODUCTS
-app.get("/get-products", async (req, res) => {
-const products = await productModel.find();
-if (products.length === 0) {
-  return res.json({ message: "No products found" });
-}
-return res.json({message: "Here are all the products", products});  
+app.get("/get-products", isLoggedin, async (req, res) => {
+  const products = await productModel.find();
+  if (products.length === 0) {
+    return res.json({ message: "No products found" });
+  }
+  return res.json({ message: "Here are all the products", products });
 });
 
-
-app.get("/get-single-product/:id", async (req, res) => {
+app.get("/get-single-product/:id", isLoggedin, async (req, res) => {
   const productId = req.params.id;
 
   const getSingleProduct = await productModel.findOne({ _id: productId });
@@ -59,99 +55,27 @@ app.get("/get-single-product/:id", async (req, res) => {
     .json({ message: "Here are your product details", getSingleProduct });
 });
 
-
 // UPDATE PRODUCT
-app.put("/update-product/:id", async (req, res) => {
+app.put("/update-product/:id", isLoggedin, async (req, res) => {
   const productId = req.params.id;
   const findProduct = await productModel.findById(productId);
   if (!findProduct) {
     return res.send("No Product Found.");
   }
-  const updateProduct = await productModel.findByIdAndUpdate(productId, req.body, { new: true });
+  const updateProduct = await productModel.findByIdAndUpdate(
+    productId,
+    req.body,
+    { new: true },
+  );
   return res.json({ message: "Product Updated Successfully", updateProduct });
 });
 
-
-
 // DELETE PRODUCT
-app.delete("/delete-product/:id", async (req, res) => {
+app.delete("/delete-product/:id", isLoggedin, async (req, res) => {
   const productId = req.params.id;
-  
-  await productModel.findByIdAndDelete({ _id: productId });  
+
+  await productModel.findByIdAndDelete({ _id: productId });
   return res.send("Product Delete Successfully.");
- })
-
-
-
-// create User API
-
-app.post("/create-user", async (req, res) => {
-  if (!req.body) {
-    return res.send("No Data found");
-  }
-
-  const userData = await userModel.create(req.body);
-
-  if (userData) {
-    return res.json({ message: "data recived", userData });
-  } else {
-    return res.json({ message: "data not saved. Error" });
-  }
-});
-
-// get all users API
-
-app.get("/get-users", async (req, res) => {
-  const userData = await userModel.find();
-  if (userData.length > 0) {
-    return res.json({ message: "here are all the users", userData });
-  } else {
-    return res.json({ message: "no users found" });
-  }
-});
-
-// get single user details API
-
-app.get("/get-single-user/:id", async (req, res) => {
-  const userId = req.params.id;
-
-  const getSingleUser = await userModel.findOne({ _id: userId });
-  if (!getSingleUser) {
-    return res.status(404).send("User not found");
-  }
-
-  return res
-    .status(200)
-    .json({ message: "Here are your user details", getSingleUser });
-});
-
-// UPDATE a user
-app.put("/update-user/:id", async (req, res) => {
-  const userId = req.params.id;
-  const findUser = await userModel.findOne({ _id: userId });
-  if (!findUser) {
-    return res.json({ message: "No user found" });
-  }
-
-  const updateUser = await userModel.findByIdAndUpdate(userId, req.body, {
-    new: true,
-  });
-
-  return res.send("User updated successfully");
-});
-
-// delete user API
-
-app.delete("/delete-user/:id", async (req, res) => {
-  const userId = req.params.id;
-
-  const findUser = await userModel.findById(userId);
-  if (!findUser) {
-    return res.send("No User Found.");
-  }
-
-  const deleteUser = await userModel.findByIdAndDelete(userId);
-  return res.send("User Delete Successfully.");
 });
 
 // Register User API
@@ -159,6 +83,17 @@ app.delete("/delete-user/:id", async (req, res) => {
 app.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
+
+        // Validate inputs
+    if (!username || !email || !password) {
+      return res.status(400).send("All fields are required");
+    }
+
+    // Check if user already exists
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      return res.status(400).send("Email already registered");
+    }
 
     const saltRounds = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -174,7 +109,6 @@ app.post("/register", async (req, res) => {
     }
 
     return res.status(200).send("User Created Successfully.");
-
   } catch (error) {
     console.log("something is wrong", error);
     return res.status(500).send("Server error");
@@ -194,7 +128,7 @@ app.post("/login", async (req, res) => {
 
     const isPasswordCorrect = await bcrypt.compare(
       password,
-      findEmail.password
+      findEmail.password,
     );
 
     if (!isPasswordCorrect) {
@@ -207,21 +141,42 @@ app.post("/login", async (req, res) => {
         email: findEmail.email,
       },
       process.env.JWT_SECRECT_KEY,
-      { expiresIn: "20m" }
+      { expiresIn: "20m" },
     );
 
     return res.status(200).json({ message: "User logged in.", token });
-
-    
   } catch (error) {
     console.log("something is wrong", error);
     return res.status(200).send("Server error");
   }
 });
 
+app.post("/logout", (req, res) => {
+  // If you were using cookies, clear the token cookie
+  res.cookie("token", "", { httpOnly: true, expires: new Date(0) });
+
+  // Send JSON response for frontend SPA
+  res.status(200).json({ message: "Logged out successfully" });
+});
+
+// middleware to verify token
+
+function isLoggedin(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "No token provided" });
+
+    const token = authHeader.split(" ")[1];
+    const data = jwt.verify(token, process.env.JWT_SECRECT_KEY);
+    req.user = data;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
 // runs a server
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`server is running on port ${PORT}`);
 });
