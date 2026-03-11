@@ -123,7 +123,7 @@ app.post("/login", async (req, res) => {
 
     const findEmail = await userModel.findOne({ email: email });
     if (!findEmail) {
-      return res.status(404).send("Incorrect email");
+      return res.status(404).send("Incorrect email or password");
     }
 
     const isPasswordCorrect = await bcrypt.compare(
@@ -132,7 +132,7 @@ app.post("/login", async (req, res) => {
     );
 
     if (!isPasswordCorrect) {
-      return res.status(404).send("Incorrect password");
+      return res.status(404).send("Incorrect email or password");
     }
 
     const token = jwt.sign(
@@ -145,10 +145,10 @@ app.post("/login", async (req, res) => {
     );
 
     return res.status(200).json({ message: "User logged in.", token });
-  } catch (error) {
-    console.log("something is wrong", error);
-    return res.status(200).send("Server error");
-  }
+    } catch (error) {
+        console.log("something is wrong", error);
+        return res.status(500).json({ message: error.message });
+}
 });
 
 app.post("/logout", (req, res) => {
