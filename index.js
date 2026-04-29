@@ -2,7 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
-require("./utils/connection");
+const connectDB = require("./utils/connection");
+connectDB();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const userModel = require("./Models/userModel");
@@ -177,6 +178,8 @@ function isLoggedin(req, res, next) {
 // runs a server
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`server is running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
+}
+
+module.exports = app;
